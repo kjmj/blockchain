@@ -12,6 +12,7 @@ class Blockchain:
     def newBlock(self, proof, previousHash=None):
         """
         Create a new block in this blockchain.
+
         :param int proof: The proof given by the proof of work algorithm.
         :param str previousHash: The hash of the previous block.
         :return dict: a new block.
@@ -49,7 +50,8 @@ class Blockchain:
     @staticmethod
     def hash(block):
         """
-        Create a SHA-256 hash of a block
+        Create a SHA-256 hash of a block.
+
         :param dict block: The block to hash.
         :return str: The SHA-256 hash of the given block.
         """
@@ -77,3 +79,32 @@ class Blockchain:
         })
 
         return self.lastBlock['index'] + 1
+
+    def proofOfWork(self, lastProof):
+        """
+        Proof of work algorithm is as follows:
+            - Find a number p' such that hash(pp') contains 4 leading zeros, where p is the previous p'
+            - p is the previous proof, p' is the new proof
+
+        :param lastProof: The previous proof.
+        :return int: The number that satisfies the proof of work algorithm.
+        """
+        proof = 0
+        while not self.validProof(lastProof, proof):
+            proof += 1
+
+        return proof
+
+    @staticmethod
+    def validProof(lastProof, proof):
+        """
+        Determines whether or not the proof is valid.
+
+        :param int lastProof: The previous proof.
+        :param int proof: The current proof.
+        :return boolean: True if proof is correct, False otherwise
+        """
+        guess = f'{lastProof, proof}'.encode()
+        guessHash = hashlib.sha256(guess).hexdigest()
+
+        return guessHash[:4] == '0000'
