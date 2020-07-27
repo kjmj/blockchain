@@ -1,34 +1,74 @@
+from time import time
+import hashlib
+import json
+
 class Blockchain:
     def __init__(self):
         self.chain = []
         self.currentTransactions = []
 
-    def newBlock(self):
-        # creates a new block and adds it to the chain
-        pass
+        self.newBlock(proof=100, previousHash=1) # The genesis (first) block
 
-    def newTransaction(self):
-        # creates a new transaction and adds it to the list of transactions
-        pass
+    def newBlock(self, proof, previousHash=None):
+        """
+        Create a new block in this blockchain.
+        :param int proof: The proof given by the proof of work algorithm.
+        :param str previousHash: The hash of the previous block.
+        :return dict: a new block.
+        """
+        block = {
+            'index': len(self.chain) + 1,
+            'timestamp': time(),
+            'transactions': self.currentTransactions,
+            'proof': proof,
+            'previousHash': previousHash or self.hash(self.lastBlock)
+        }
+
+        self.currentTransactions = [] # reset the list of current transactions
+        self.chain.append(block)
+        return block
+
+    def newTransaction(self, sender, receipt, amount):
+        """
+        Create a new transaction and add it to the next mined block.
+
+        :param str sender: Address of the sender.
+        :param str receipt: Address of the receipt.
+        :param amount: The amount for this transaction.
+        :return int: The index of the block that will hold this transaction.
+        """
+        transaction = {
+            'sender': sender,
+            'receipt': receipt,
+            'amount': amount
+        }
+
+        self.currentTransactions.append(transaction)
+        return self.lastBlock['index'] + 1
 
     @staticmethod
     def hash(block):
-        # hashes a block
-        pass
+        """
+        Create a SHA-256 hash of a block
+        :param dict block: The block to hash.
+        :return str: The SHA-256 hash of the given block.
+        """
+        blockString = json.dumps(block, sort_keys=True).encode()
+        return hashlib.sha256(blockString).hexdigest()
 
     @property
     def lastBlock(self):
         # return the last block in the chain
-        pass
+        return self.chain[-1]
 
     def newTransaction(self, sender, recipient, amount):
         """
-        create a new transaction, which will go into the next mined block
+        Create a new transaction, which will go into the next mined block.
 
-        :param str sender: address of the sender
-        :param str recipient: address of the recipient
-        :param str amount: the amount for this transaction
-        :return int: the index of the block that will hold this transaction
+        :param str sender: Address of the sender.
+        :param str recipient: Address of the recipient.
+        :param str amount: The amount for this transaction.
+        :return int: The index of the block that will hold this transaction.
         """
         self.currentTransactions.append({
             'sender': sender,
