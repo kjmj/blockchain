@@ -1,13 +1,16 @@
 from time import time
 import hashlib
 import json
+from uuid import uuid4
+from flask import Flask, jsonify
+
 
 class Blockchain:
     def __init__(self):
         self.chain = []
         self.currentTransactions = []
 
-        self.newBlock(proof=100, previousHash=1) # The genesis (first) block
+        self.newBlock(proof=100, previousHash=1)  # The genesis (first) block
 
     def newBlock(self, proof, previousHash=None):
         """
@@ -25,7 +28,7 @@ class Blockchain:
             'previousHash': previousHash or self.hash(self.lastBlock)
         }
 
-        self.currentTransactions = [] # reset the list of current transactions
+        self.currentTransactions = []  # reset the list of current transactions
         self.chain.append(block)
         return block
 
@@ -108,3 +111,30 @@ class Blockchain:
         guessHash = hashlib.sha256(guess).hexdigest()
 
         return guessHash[:4] == '0000'
+
+
+app = Flask(__name__)
+nodeID = str(uuid4()).replace('-', '')
+blockchain = Blockchain()
+
+@app.route('/mine', methods=['GET'])
+def mine():
+    return 'Make a new block'
+
+
+@app.route('/transactions/new', methods=['POST'])
+def newTransaction():
+    return 'Add a new transaction'
+
+
+@app.route('/chain', methods=['GET'])
+def chain():
+    response = {
+        'chain': blockchain.chain,
+        'length': len(blockchain.chain),
+    }
+    return jsonify(response), 200
+
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
