@@ -2,7 +2,7 @@ from time import time
 import hashlib
 import json
 from uuid import uuid4
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 
 
 class Blockchain:
@@ -32,18 +32,18 @@ class Blockchain:
         self.chain.append(block)
         return block
 
-    def newTransaction(self, sender, receipt, amount):
+    def newTransaction(self, sender, recipient, amount):
         """
         Create a new transaction and add it to the next mined block.
 
         :param str sender: Address of the sender.
-        :param str receipt: Address of the receipt.
+        :param str recipient: Address of the recipient.
         :param amount: The amount for this transaction.
         :return int: The index of the block that will hold this transaction.
         """
         transaction = {
             'sender': sender,
-            'receipt': receipt,
+            'recipient': recipient,
             'amount': amount
         }
 
@@ -117,14 +117,48 @@ app = Flask(__name__)
 nodeID = str(uuid4()).replace('-', '')
 blockchain = Blockchain()
 
+
 @app.route('/mine', methods=['GET'])
 def mine():
-    return 'Make a new block'
+    # run the proof of work algorithm
+    lastBlock = blockchain.lastBlock
+    lastProof = lastBlock['proof']
+    proof = blockchain.proofOfWork(lastProof)
+
+    # receive a reward for finding the proof
+    blockchain.newTransaction(
+        sender="0",
+        recipient=nodeID,
+        amount=1
+    )
+
+    # forge the new block by adding it to the chain
+    prevHash = blockchain.hash(lastBlock)
+    block = blockchain.newBlock(proof, prevHash)
+
+    response = {
+        'message': "New Block Forged",
+        'index': block['index'],
+        'transactions': block['transactions'],
+        'proof': block['proof'],
+        'previous_hash': block['previousHash'],
+    }
+
+    return jsonify(response), 200
 
 
 @app.route('/transactions/new', methods=['POST'])
 def newTransaction():
-    return 'Add a new transaction'
+    vals = request.get_json()
+
+    # ensure all fields are in the posted data
+    required = ['sender', 'recipient', 'amount']
+    if not all(k in vals for k in required):
+        return 'Missing values', 400
+
+    index = blockchain.newTransaction(vals['sender'], vals['recipient'], vals['amount'])
+    response = {'message': f'Transaction will be added to Block index {index}'}
+    return jsonify(response), 200
 
 
 @app.route('/chain', methods=['GET'])
